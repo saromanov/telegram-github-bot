@@ -12,6 +12,7 @@ import (
 type Telgitbot struct {
 	botapi *tgbotapi.BotAPI
 	client *github.Client
+	fsm    *FSM
 }
 
 func New(token string) *Telgitbot {
@@ -26,7 +27,16 @@ func New(token string) *Telgitbot {
 	tgb := new(Telgitbot)
 	tgb.botapi = bot
 	tgb.client = github.NewClient(nil)
+	tgb.fsm = NewFSM()
 	return tgb
+}
+
+func (tgb *Telgitbot) registerStates() {
+	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators"},
+		[]string{"/auth", "/repos"})
+	tgb.fsm.AddState("auth", []string{"begin", "dataauth"}, []string{"", " "})
+	tgb.fsm.AddState("repos", []string{"begin"}, []string{""})
+	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 }
 
 func (tgb *Telgitbot) Start() {
@@ -38,11 +48,17 @@ func (tgb *Telgitbot) Start() {
 		log.Panic(err)
 	}
 
+	tgb.fsm.SetState("begin")
 	for {
 		for update := range tgb.botapi.Updates {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := update.Message.Text
+			if text == "/auth" {
+				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
+				tgb.botapi.SendMessage(msg)
+			}
+
 			if strings.HasPrefix(text, "/repos_") {
 				username := strings.Split(text, "_")[1]
 				if len(username) > 0 {
