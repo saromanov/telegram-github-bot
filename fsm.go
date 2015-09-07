@@ -23,6 +23,7 @@ func NewFSM()*FSM {
 	return fsm
 }
 
+//AddState provides set new state
 func (fsm *FSM) AddState(state string, nextstates []string, inp []string) {
 	fsm.states = append(fsm.states, state)
 	fsm.store[state] = inp
