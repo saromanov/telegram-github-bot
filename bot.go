@@ -60,6 +60,23 @@ func (tgb *Telgitbot) Start() {
 					}
 				}
 			}
+
+			if strings.HasPrefix(text, "/collaborators_") {
+				repo := strings.Split(text, "_")[1]
+				if len(repo) > 0 {
+					repos, _, err := tgb.client.Repositories.ListCollaborators("saromanov", repo, nil)
+					if err != nil {
+						fmt.Println("error: %v\n\n", err)
+					} else {
+						result := ""
+						for _, repo := range repos {
+							result += *repo.Name + "\n"
+						}
+						msg := tgbotapi.NewMessage(update.Message.Chat.ID, result)
+						tgb.botapi.SendMessage(msg)
+					}
+				}
+			}
 		}
 
 		time.Sleep(100 * time.Millisecond)
