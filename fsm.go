@@ -51,3 +51,19 @@ func (fsm *FSM) checkStates(state string) bool {
 
 	return false
 }
+
+//existNextState provides checking nextstate from current state
+func (fsm *FSM) existNextState(state string, nextstate string) bool {
+	if !fsm.checkStates(state) {
+		return false
+	}
+
+	next, _ := fsm.nextstates[state]
+	for _, st := range next {
+		if st == nextstates {
+			return true
+		}
+	}
+
+	return false
+}
