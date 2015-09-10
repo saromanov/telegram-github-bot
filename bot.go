@@ -54,13 +54,14 @@ func (tgb *Telgitbot) Start() {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := tgb.prepareInput(update.Message.Text)
-            if !tgb.fsm.existNextState("state", next) {
+            if !tgb.fsm.existNextState(next) || text == " " {
                 continue
             }
-            
+
 			if text == "/auth" {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
 				tgb.botapi.SendMessage(msg)
+                states = tgb.fsm.SetState("auth")
 			}
 
 			if strings.HasPrefix(text, "/repos_") {
@@ -107,6 +108,7 @@ func (tgb *Telgitbot) Start() {
 func (tgb *Telgitbot) prepareInput(inp string) string{
     return strings.ToLower(inp)
 }
+
 
 func (tgb *Telgitbot) findByStars(title string) {
 

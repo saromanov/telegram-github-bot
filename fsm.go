@@ -41,6 +41,22 @@ func (fsm *FSM) SetState(state string)[]string {
 	return next
 }
 
+//existNextState provides checking nextstate from current state
+func (fsm *FSM) ExistNextState(nextstate string) bool {
+	if !fsm.checkStates(fsm.currentstate) {
+		return false
+	}
+
+	next, _ := fsm.nextstates[fsm.currentstate]
+	for _, st := range next {
+		if st == nextstates {
+			return true
+		}
+	}
+
+	return false
+}
+
 
 func (fsm *FSM) checkStates(state string) bool {
 	for _, inp := range fsm.states {
@@ -48,22 +64,6 @@ func (fsm *FSM) checkStates(state string) bool {
 			return true
 		}
 	} 
-
-	return false
-}
-
-//existNextState provides checking nextstate from current state
-func (fsm *FSM) existNextState(state string, nextstate string) bool {
-	if !fsm.checkStates(state) {
-		return false
-	}
-
-	next, _ := fsm.nextstates[state]
-	for _, st := range next {
-		if st == nextstates {
-			return true
-		}
-	}
 
 	return false
 }
