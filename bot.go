@@ -48,12 +48,13 @@ func (tgb *Telgitbot) Start() {
 		log.Panic(err)
 	}
 
-	tgb.fsm.SetState("begin")
+	states := tgb.fsm.SetState("begin")
 	for {
 		for update := range tgb.botapi.Updates {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := update.Message.Text
+
 			if text == "/auth" {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
 				tgb.botapi.SendMessage(msg)
@@ -97,6 +98,11 @@ func (tgb *Telgitbot) Start() {
 
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+//prepareInput provides getting "standard" data from request
+func (tgb *Telgitbot) prepareInput(inp string) string{
+    return strings.ToLower(inp)
 }
 
 func (tgb *Telgitbot) findByStars(title string) {
