@@ -66,6 +66,7 @@ func (tgb *Telgitbot) Start() {
 			}
 
 			if strings.HasPrefix(text, "/repos_") {
+				tgb.fsm.SetState("repos")
 				username := strings.Split(text, "_")[1]
 				if len(username) > 0 {
 					//opt := &github.RepositoryListOptions{Sort: "updated"}
@@ -81,6 +82,7 @@ func (tgb *Telgitbot) Start() {
 						tgb.botapi.SendMessage(msg)
 					}
 				}
+				tgb.fsm.SetState("begin")
 			}
 
 			if strings.HasPrefix(text, "/collaborators_") {
