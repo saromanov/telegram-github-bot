@@ -54,7 +54,8 @@ func (tgb *Telgitbot) Start() {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := tgb.prepareInput(update.Message.Text)
-			if !tgb.fsm.ExistNextState(text) || text == " " {
+			state := tgb.prepareState(text)
+			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
 				continue
 			}
 
@@ -107,6 +108,25 @@ func (tgb *Telgitbot) Start() {
 //prepareInput provides getting "standard" data from request
 func (tgb *Telgitbot) prepareInput(inp string) string {
 	return strings.ToLower(inp)
+}
+
+//Get "clean" inpute command for state of FSM
+func (tgb *Telgitbot) prepareState(inp string) string {
+	result := inp
+	if strings.HasPrefix(inp, "/") {
+		result = result[1:]
+	}
+
+	if strings.Index(result, "_") != -1 {
+		splitter := strings.Split(result, "_")
+		result = splitter[0]
+	}
+
+	if strings.Index(result, " ") != -1 {
+		splitter := strings.Split(result, " ")
+		result = splitter[0]
+	}
+	return result
 }
 
 func (tgb *Telgitbot) findByStars(title string) {
