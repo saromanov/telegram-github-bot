@@ -49,7 +49,7 @@ func (fsm *FSM) ExistNextState(nextstate string) bool {
 
 	next, _ := fsm.nextstates[fsm.currentstate]
 	for _, st := range next {
-		if st == nextstates {
+		if st == nextstate {
 			return true
 		}
 	}
