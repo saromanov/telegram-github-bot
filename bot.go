@@ -59,7 +59,6 @@ func (tgb *Telgitbot) Start() {
 			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
 				continue
 			}
-
 			if text == "/auth" {
 				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
 				tgb.botapi.SendMessage(msg)
