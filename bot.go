@@ -28,6 +28,7 @@ func New(token string) *Telgitbot {
 	tgb.botapi = bot
 	tgb.client = github.NewClient(nil)
 	tgb.fsm = NewFSM()
+	tgb.registerStates()
 	return tgb
 }
 
