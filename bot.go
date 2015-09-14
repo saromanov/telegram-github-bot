@@ -40,6 +40,16 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 }
 
+func (tgb *Telgitbot) Process() {
+	for {
+		state := tgb.fsm.CurrentState()
+		switch state {
+		case "begin":
+			fmt.Println("A")
+		}
+	}
+}
+
 func (tgb *Telgitbot) Start() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -100,6 +110,8 @@ func (tgb *Telgitbot) Start() {
 						tgb.botapi.SendMessage(msg)
 					}
 				}
+			} else {
+				fmt.Println(update.Message.Text)
 			}
 		}
 
