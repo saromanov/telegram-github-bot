@@ -2,6 +2,7 @@ package telgitbot
 
 //Implementation of Finite-State Machine
 
+
 type FSM struct {
 	//states has a current registered states
 	states  []string
@@ -46,7 +47,6 @@ func (fsm *FSM) ExistNextState(nextstate string) bool {
 	if !fsm.checkStates(fsm.currentstate) {
 		return false
 	}
-
 	next, _ := fsm.nextstates[fsm.currentstate]
 	for _, st := range next {
 		if st == nextstate {
@@ -55,6 +55,11 @@ func (fsm *FSM) ExistNextState(nextstate string) bool {
 	}
 
 	return false
+}
+
+//CurrentState returns current state
+func (fsm *FSM) CurrentState() string {
+	return fsm.currentstate
 }
 
 
