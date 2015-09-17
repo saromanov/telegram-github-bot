@@ -77,9 +77,9 @@ func (tgb *Telgitbot) Start() {
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := tgb.prepareInput(update.Message.Text)
 			state := tgb.prepareState(text)
-			/*if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
+			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
 				continue
-			}*/
+			}
 
 			tgb.fsm.SetState(state)
 			tgb.Process(update.Message.Chat.ID, text)
