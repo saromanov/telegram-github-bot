@@ -57,6 +57,11 @@ func (fsm *FSM) ExistNextState(nextstate string) bool {
 	return false
 }
 
+//ExistState returns true if current state is exist and false otherwise
+func (fsm *FSM) ExistState(state string) bool {
+	return fsm.checkStates(state)
+}
+
 //CurrentState returns current state
 func (fsm *FSM) CurrentState() string {
 	return fsm.currentstate
