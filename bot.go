@@ -40,14 +40,22 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 }
 
-func (tgb *Telgitbot) Process() {
-	for {
-		state := tgb.fsm.CurrentState()
-		switch state {
-		case "begin":
-			fmt.Println("A")
-		}
+func (tgb *Telgitbot) Process(text string) {
+	state := tgb.fsm.CurrentState()
+	switch state {
+	case "begin":
+		continue
+	case "auth":
+		tgb.auth(text)
+		tgb.fsm.SetState("dataauth")
+	case "dataauth":
+		tgb.dataauth(text)
+	case "repos":
+		tgb.repos(text)
+		tgb.fsm.SetState("begin")
 	}
+
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (tgb *Telgitbot) Start() {
@@ -59,7 +67,6 @@ func (tgb *Telgitbot) Start() {
 		log.Panic(err)
 	}
 
-	tgb.fsm.SetState("begin")
 	for {
 		for update := range tgb.botapi.Updates {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
@@ -68,31 +75,6 @@ func (tgb *Telgitbot) Start() {
 			state := tgb.prepareState(text)
 			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
 				continue
-			}
-			if text == "/auth" {
-				msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
-				tgb.botapi.SendMessage(msg)
-				tgb.fsm.SetState("auth")
-			}
-
-			if strings.HasPrefix(text, "/repos_") {
-				tgb.fsm.SetState("repos")
-				username := strings.Split(text, "_")[1]
-				if len(username) > 0 {
-					//opt := &github.RepositoryListOptions{Sort: "updated"}
-					repos, _, err := tgb.client.Repositories.List(username, nil)
-					if err != nil {
-						fmt.Println("error: %v\n\n", err)
-					} else {
-						result := ""
-						for _, repo := range repos {
-							result += *repo.FullName + "\n"
-						}
-						msg := tgbotapi.NewMessage(update.Message.Chat.ID, result)
-						tgb.botapi.SendMessage(msg)
-					}
-				}
-				tgb.fsm.SetState("begin")
 			}
 
 			if strings.HasPrefix(text, "/collaborators_") {
@@ -116,6 +98,38 @@ func (tgb *Telgitbot) Start() {
 		}
 
 		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func (tgb *Telgitbot) auth(inp string) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
+	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) dataauth(text string) {
+	check := strings.Index(text, ":")
+	if check == -1 {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+			"username and password must be in the format Username:Passord")
+		tgb.botapi.SendMessage(msg)
+	}
+}
+
+func (tgb *Telgitbot) repos(reponame string) {
+	username := strings.Split(text, "_")[1]
+	if len(username) > 0 {
+		//opt := &github.RepositoryListOptions{Sort: "updated"}
+		repos, _, err := tgb.client.Repositories.List(username, nil)
+		if err != nil {
+			fmt.Println("error: %v\n\n", err)
+		} else {
+			result := ""
+			for _, repo := range repos {
+				result += *repo.FullName + "\n"
+			}
+			msg := tgbotapi.NewMessage(update.Message.Chat.ID, result)
+			tgb.botapi.SendMessage(msg)
+		}
 	}
 }
 
