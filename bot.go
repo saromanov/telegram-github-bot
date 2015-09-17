@@ -39,10 +39,12 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState("auth", []string{"begin", "dataauth"}, []string{"", " "})
 	tgb.fsm.AddState("repos", []string{"begin"}, []string{""})
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
+	tgb.fsm.AddState("dataauth", []string{"begin"}, []string{""})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, text string) {
 	state := tgb.fsm.CurrentState()
+	fmt.Println("STATE: ", state)
 	if !tgb.fsm.ExistState(state) {
 		msg := tgbotapi.NewMessage(idmsg, "this command is not supported")
 		tgb.botapi.SendMessage(msg)
