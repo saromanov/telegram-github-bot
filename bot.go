@@ -42,12 +42,11 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState("dataauth", []string{"begin"}, []string{""})
 }
 
-func (tgb *Telgitbot) Process(idmsg int, text string) {
-	state := tgb.fsm.CurrentState()
-	fmt.Println("STATE: ", state)
-	if !tgb.fsm.ExistState(state) {
-		msg := tgbotapi.NewMessage(idmsg, "this command is not supported")
-		tgb.botapi.SendMessage(msg)
+func (tgb *Telgitbot) Process(idmsg int, state, text string) {
+	if strings.HasPrefix(text, "/") && tgb.fsm.ExistNextState(state) {
+		tgb.fsm.SetState(state)
+	} else {
+		state = tgb.fsm.CurrentState()
 	}
 
 	switch state {
@@ -56,6 +55,7 @@ func (tgb *Telgitbot) Process(idmsg int, text string) {
 		tgb.fsm.SetState("dataauth")
 	case "dataauth":
 		tgb.dataauth(idmsg, text)
+		tgb.fsm.SetState("begin")
 	case "repos":
 		tgb.repos(idmsg, text)
 		tgb.fsm.SetState("begin")
@@ -71,18 +71,16 @@ func (tgb *Telgitbot) Start() {
 		log.Panic(err)
 	}
 
+	tgb.fsm.SetState("begin")
 	for {
 		for update := range tgb.botapi.Updates {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := tgb.prepareInput(update.Message.Text)
 			state := tgb.prepareState(text)
-			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
-				continue
-			}
 
-			tgb.fsm.SetState(state)
-			tgb.Process(update.Message.Chat.ID, text)
+			//tgb.fsm.SetState(state)
+			tgb.Process(update.Message.Chat.ID, state, text)
 			if strings.HasPrefix(text, "/collaborators_") {
 				repo := strings.Split(text, "_")[1]
 				if len(repo) > 0 {
