@@ -10,10 +10,10 @@ import (
 )
 
 type Telgitbot struct {
-	botapi *tgbotapi.BotAPI
-	client *github.Client
-	fsm    *FSM
-    updatemessage  int
+	botapi        *tgbotapi.BotAPI
+	client        *github.Client
+	fsm           *FSM
+	updatemessage int
 }
 
 func New(token string) *Telgitbot {
@@ -41,22 +41,23 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 }
 
-func (tgb *Telgitbot) Process(text string) {
+func (tgb *Telgitbot) Process(idmsg int, text string) {
 	state := tgb.fsm.CurrentState()
-	switch state {
-	case "begin":
-		continue
-	case "auth":
-		tgb.auth(text)
-		tgb.fsm.SetState("dataauth")
-	case "dataauth":
-		tgb.dataauth(text)
-	case "repos":
-		tgb.repos(text)
-		tgb.fsm.SetState("begin")
+	if !tgb.fsm.ExistState(state) {
+		msg := tgbotapi.NewMessage(idmsg, "this command is not supported")
+		tgb.botapi.SendMessage(msg)
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	switch state {
+	case "auth":
+		tgb.auth(idmsg, text)
+		tgb.fsm.SetState("dataauth")
+	case "dataauth":
+		tgb.dataauth(idmsg, text)
+	case "repos":
+		tgb.repos(idmsg, text)
+		tgb.fsm.SetState("begin")
+	}
 }
 
 func (tgb *Telgitbot) Start() {
@@ -74,12 +75,12 @@ func (tgb *Telgitbot) Start() {
 			msg.ReplyToMessageID = update.Message.MessageID
 			text := tgb.prepareInput(update.Message.Text)
 			state := tgb.prepareState(text)
-			if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
+			/*if !tgb.fsm.ExistNextState(state) || text == " " || state == " " {
 				continue
-			}
+			}*/
 
-            tgb.fsm.SetState(state)
-            tgb.Process(text)
+			tgb.fsm.SetState(state)
+			tgb.Process(update.Message.Chat.ID, text)
 			if strings.HasPrefix(text, "/collaborators_") {
 				repo := strings.Split(text, "_")[1]
 				if len(repo) > 0 {
@@ -104,21 +105,21 @@ func (tgb *Telgitbot) Start() {
 	}
 }
 
-func (tgb *Telgitbot) auth(inp string) {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Set your username and password")
+func (tgb *Telgitbot) auth(idmsg int, inp string) {
+	msg := tgbotapi.NewMessage(idmsg, "Set your username and password")
 	tgb.botapi.SendMessage(msg)
 }
 
-func (tgb *Telgitbot) dataauth(text string) {
+func (tgb *Telgitbot) dataauth(idmsg int, text string) {
 	check := strings.Index(text, ":")
 	if check == -1 {
-		msg := tgbotapi.NewMessage(update.Message.Chat.ID,
+		msg := tgbotapi.NewMessage(idmsg,
 			"username and password must be in the format Username:Passord")
 		tgb.botapi.SendMessage(msg)
 	}
 }
 
-func (tgb *Telgitbot) repos(reponame string) {
+func (tgb *Telgitbot) repos(idmsg int, reponame string) {
 	username := strings.Split(reponame, "_")[1]
 	if len(username) > 0 {
 		//opt := &github.RepositoryListOptions{Sort: "updated"}
@@ -130,7 +131,7 @@ func (tgb *Telgitbot) repos(reponame string) {
 			for _, repo := range repos {
 				result += *repo.FullName + "\n"
 			}
-			msg := tgbotapi.NewMessage(update.Message.Chat.ID, result)
+			msg := tgbotapi.NewMessage(idmsg, result)
 			tgb.botapi.SendMessage(msg)
 		}
 	}
