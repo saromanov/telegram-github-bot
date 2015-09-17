@@ -13,6 +13,7 @@ type Telgitbot struct {
 	botapi *tgbotapi.BotAPI
 	client *github.Client
 	fsm    *FSM
+    updatemessage  int
 }
 
 func New(token string) *Telgitbot {
@@ -77,6 +78,8 @@ func (tgb *Telgitbot) Start() {
 				continue
 			}
 
+            tgb.fsm.SetState(state)
+            tgb.Process(text)
 			if strings.HasPrefix(text, "/collaborators_") {
 				repo := strings.Split(text, "_")[1]
 				if len(repo) > 0 {
@@ -116,7 +119,7 @@ func (tgb *Telgitbot) dataauth(text string) {
 }
 
 func (tgb *Telgitbot) repos(reponame string) {
-	username := strings.Split(text, "_")[1]
+	username := strings.Split(reponame, "_")[1]
 	if len(username) > 0 {
 		//opt := &github.RepositoryListOptions{Sort: "updated"}
 		repos, _, err := tgb.client.Repositories.List(username, nil)
