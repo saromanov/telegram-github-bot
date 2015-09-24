@@ -137,6 +137,27 @@ func (tgb *Telgitbot) repos(idmsg int, reponame string) {
 	}
 }
 
+func (tgb *Telgitbot) issues(idmsg int, repoinfo string) {
+	splitter := strings.Split(repoinfo, "_")
+	if len(splitter) != 2 {
+		return
+	}
+
+	owner := splitter[0]
+	repo := splitter[1]
+	items, _, err := tgb.client.Issues.ListByRepo(owner, repo, nil)
+	if err != nil {
+		fmt.Println("error: %v\n\n", err)
+	} else {
+		result := ""
+		for _, iss := range items {
+			result += *iss.Title + "\n"
+		}
+		msg := tgbotapi.NewMessage(idmsg, result)
+		tgb.botapi.SendMessage(msg)
+	}
+}
+
 //prepareInput provides getting "standard" data from request
 func (tgb *Telgitbot) prepareInput(inp string) string {
 	return strings.ToLower(inp)
