@@ -121,19 +121,21 @@ func (tgb *Telgitbot) dataauth(idmsg int, text string) {
 
 func (tgb *Telgitbot) repos(idmsg int, reponame string) {
 	username := strings.Split(reponame, "_")[1]
-	if len(username) > 0 {
-		//opt := &github.RepositoryListOptions{Sort: "updated"}
-		repos, _, err := tgb.client.Repositories.List(username, nil)
-		if err != nil {
-			fmt.Println("error: %v\n\n", err)
-		} else {
-			result := ""
-			for _, repo := range repos {
-				result += *repo.FullName + "\n"
-			}
-			msg := tgbotapi.NewMessage(idmsg, result)
-			tgb.botapi.SendMessage(msg)
+	if len(username) == 0 {
+		return
+	}
+
+	//opt := &github.RepositoryListOptions{Sort: "updated"}
+	repos, _, err := tgb.client.Repositories.List(username, nil)
+	if err != nil {
+		fmt.Println("error: %v\n\n", err)
+	} else {
+		result := ""
+		for _, repo := range repos {
+			result += *repo.FullName + "\n"
 		}
+		msg := tgbotapi.NewMessage(idmsg, result)
+		tgb.botapi.SendMessage(msg)
 	}
 }
 
