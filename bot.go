@@ -34,12 +34,14 @@ func New(token string) *Telgitbot {
 }
 
 func (tgb *Telgitbot) registerStates() {
-	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators"},
+	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators", "issues"},
 		[]string{"/auth", "/repos"})
 	tgb.fsm.AddState("auth", []string{"begin", "dataauth"}, []string{"", " "})
 	tgb.fsm.AddState("repos", []string{"begin"}, []string{""})
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 	tgb.fsm.AddState("dataauth", []string{"begin"}, []string{""})
+	tgb.fsm.AddState("issues", []string{"issues_enter"}, []string{""})
+	tgb.fsm.AddState("issues_enter", []string{""}, []string{""})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -58,6 +60,12 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState("begin")
 	case "repos":
 		tgb.repos(idmsg, text)
+		tgb.fsm.SetState("begin")
+	case "issues":
+		tgb.issues(idmsg)
+		tgb.fsm.SetState("issues_enter")
+	case "issues_enter":
+		tgb.issues_enter(idmsg, text)
 		tgb.fsm.SetState("begin")
 	}
 }
@@ -139,7 +147,12 @@ func (tgb *Telgitbot) repos(idmsg int, reponame string) {
 	}
 }
 
-func (tgb *Telgitbot) issues(idmsg int, repoinfo string) {
+func (tgb *Telgitbot) issues(idmsg int) {
+	msg := tgbotapi.NewMessage(idmsg, "Enter owner:repo")
+	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
 	splitter := strings.Split(repoinfo, "_")
 	if len(splitter) != 2 {
 		return
