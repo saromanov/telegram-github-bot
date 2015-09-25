@@ -153,8 +153,19 @@ func (tgb *Telgitbot) issues(idmsg int) {
 }
 
 func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
+	idx := strings.Index(repoinfo, ":")
+	if idx == -1 {
+		tgb.fsm.SetState("begin")
+		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
+		tgb.botapi.SendMessage(msg)
+		return
+	}
+
 	splitter := strings.Split(repoinfo, ":")
 	if len(splitter) != 2 {
+		tgb.fsm.SetState("begin")
+		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
+		tgb.botapi.SendMessage(msg)
 		return
 	}
 
