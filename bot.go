@@ -153,7 +153,7 @@ func (tgb *Telgitbot) issues(idmsg int) {
 }
 
 func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
-	splitter := strings.Split(repoinfo, "_")
+	splitter := strings.Split(repoinfo, ":")
 	if len(splitter) != 2 {
 		return
 	}
