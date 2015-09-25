@@ -5,6 +5,7 @@ import (
 	"github.com/Syfaro/telegram-bot-api"
 	"github.com/google/go-github/github"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -34,14 +35,16 @@ func New(token string) *Telgitbot {
 }
 
 func (tgb *Telgitbot) registerStates() {
-	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators", "issues"},
+	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators", "issues", "pullrequests"},
 		[]string{"/auth", "/repos"})
 	tgb.fsm.AddState("auth", []string{"begin", "dataauth"}, []string{"", " "})
 	tgb.fsm.AddState("repos", []string{"begin"}, []string{""})
 	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
 	tgb.fsm.AddState("dataauth", []string{"begin"}, []string{""})
-	tgb.fsm.AddState("issues", []string{"issues_enter"}, []string{""})
-	tgb.fsm.AddState("issues_enter", []string{""}, []string{""})
+	tgb.fsm.AddState("issues", []string{"issues_enter", "begin"}, []string{""})
+	tgb.fsm.AddState("issues_enter", []string{"begin"}, []string{""})
+	tgb.fsm.AddState("pullrequests", []string{"pullrequests_enter", "begin"}, []string{""})
+	tgb.fsm.AddState("pullrequests_enter", []string{"begin"}, []string{""})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -66,6 +69,12 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState("issues_enter")
 	case "issues_enter":
 		tgb.issues_enter(idmsg, text)
+		tgb.fsm.SetState("begin")
+	case "pullrequests":
+		tgb.pullRequests(idmsg)
+		tgb.fsm.SetState("pullrequests_enter")
+	case "pullrequests_enter":
+		tgb.pullRequestsEnter(idmsg, text)
 		tgb.fsm.SetState("begin")
 	}
 }
@@ -176,12 +185,56 @@ func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
 		fmt.Println("error: %v\n\n", err)
 	} else {
 		result := ""
-		for _, iss := range items {
-			result += *iss.Title + "\n"
+		for i, iss := range items {
+			result += fmt.Sprintf("%d. %s\n", i+1, *iss.Title)
 		}
 		msg := tgbotapi.NewMessage(idmsg, result)
 		tgb.botapi.SendMessage(msg)
 	}
+}
+
+func (tgb *Telgitbot) pullRequests(idmsg int) {
+	msg := tgbotapi.NewMessage(idmsg, "Enter owner:repo:number of PR")
+	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) pullRequestsEnter(idmsg int, repoinfo string) {
+	idx := strings.Index(repoinfo, ":")
+	if idx == -1 {
+		tgb.fsm.SetState("begin")
+		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
+		tgb.botapi.SendMessage(msg)
+		return
+	}
+
+	splitter := strings.Split(repoinfo, ":")
+	if len(splitter) != 3 {
+		tgb.fsm.SetState("begin")
+		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
+		tgb.botapi.SendMessage(msg)
+		return
+	}
+	owner := splitter[0]
+	repo := splitter[1]
+	num, err := strconv.Atoi(splitter[2])
+	if err != nil {
+		msg := tgbotapi.NewMessage(idmsg, "Number of pull requests must be integer")
+		tgb.botapi.SendMessage(msg)
+		return
+	}
+
+	items, _, err := tgb.client.PullRequests.ListCommits(owner, repo, num, nil)
+	if err != nil {
+		fmt.Println("error: %v\n\n", err)
+		return
+	}
+
+	result := ""
+	for i, pr := range items {
+		result += fmt.Sprintf("%d. %s:%s\n", i+1, *pr.SHA, *pr.Commit.Message)
+	}
+	msg := tgbotapi.NewMessage(idmsg, result)
+	tgb.botapi.SendMessage(msg)
 }
 
 //prepareInput provides getting "standard" data from request
