@@ -10,6 +10,18 @@ import (
 	"time"
 )
 
+const (
+	BEGIN             = "begin"
+	AUTH              = "auth"
+	REPOS             = "repos"
+	COLLABORATORS     = "collaborators"
+	DATAAUTH          = "dataauth"
+	ISSUES            = "issues"
+	ISSUESENTER       = "issues_enter"
+	PULLREQUESTS      = "pullrequests"
+	PULLREQUESTSENTER = "pullrequests_enter"
+)
+
 type Telgitbot struct {
 	botapi        *tgbotapi.BotAPI
 	client        *github.Client
@@ -35,16 +47,16 @@ func New(token string) *Telgitbot {
 }
 
 func (tgb *Telgitbot) registerStates() {
-	tgb.fsm.AddState("begin", []string{"auth", "repos", "collaborators", "issues", "pullrequests"},
+	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS},
 		[]string{"/auth", "/repos"})
-	tgb.fsm.AddState("auth", []string{"begin", "dataauth"}, []string{"", " "})
-	tgb.fsm.AddState("repos", []string{"begin"}, []string{""})
-	tgb.fsm.AddState("collaborators", []string{"begin"}, []string{""})
-	tgb.fsm.AddState("dataauth", []string{"begin"}, []string{""})
-	tgb.fsm.AddState("issues", []string{"issues_enter", "begin"}, []string{""})
-	tgb.fsm.AddState("issues_enter", []string{"begin"}, []string{""})
-	tgb.fsm.AddState("pullrequests", []string{"pullrequests_enter", "begin"}, []string{""})
-	tgb.fsm.AddState("pullrequests_enter", []string{"begin"}, []string{""})
+	tgb.fsm.AddState(AUTH, []string{BEGIN, DATAAUTH}, []string{"", " "})
+	tgb.fsm.AddState(REPOS, []string{BEGIN}, []string{""})
+	tgb.fsm.AddState(COLLABORATORS, []string{BEGIN}, []string{""})
+	tgb.fsm.AddState(DATAAUTH, []string{BEGIN}, []string{""})
+	tgb.fsm.AddState(ISSUES, []string{ISSUESENTER, BEGIN}, []string{""})
+	tgb.fsm.AddState(ISSUESENTER, []string{BEGIN}, []string{""})
+	tgb.fsm.AddState(PULLREQUESTS, []string{PULLREQUESTSENTER, BEGIN}, []string{""})
+	tgb.fsm.AddState(PULLREQUESTSENTER, []string{BEGIN}, []string{""})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -55,27 +67,27 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 	}
 
 	switch state {
-	case "auth":
+	case AUTH:
 		tgb.auth(idmsg, text)
-		tgb.fsm.SetState("dataauth")
-	case "dataauth":
+		tgb.fsm.SetState(DATAAUTH)
+	case DATAAUTH:
 		tgb.dataauth(idmsg, text)
-		tgb.fsm.SetState("begin")
-	case "repos":
+		tgb.fsm.SetState(BEGIN)
+	case REPOS:
 		tgb.repos(idmsg, text)
-		tgb.fsm.SetState("begin")
-	case "issues":
+		tgb.fsm.SetState(BEGIN)
+	case ISSUES:
 		tgb.issues(idmsg)
-		tgb.fsm.SetState("issues_enter")
-	case "issues_enter":
+		tgb.fsm.SetState(ISSUESENTER)
+	case ISSUESENTER:
 		tgb.issues_enter(idmsg, text)
-		tgb.fsm.SetState("begin")
-	case "pullrequests":
+		tgb.fsm.SetState(BEGIN)
+	case PULLREQUESTS:
 		tgb.pullRequests(idmsg)
-		tgb.fsm.SetState("pullrequests_enter")
-	case "pullrequests_enter":
+		tgb.fsm.SetState(PULLREQUESTSENTER)
+	case PULLREQUESTSENTER:
 		tgb.pullRequestsEnter(idmsg, text)
-		tgb.fsm.SetState("begin")
+		tgb.fsm.SetState(BEGIN)
 	}
 }
 
@@ -88,7 +100,7 @@ func (tgb *Telgitbot) Start() {
 		log.Panic(err)
 	}
 
-	tgb.fsm.SetState("begin")
+	tgb.fsm.SetState(BEGIN)
 	for {
 		for update := range tgb.botapi.Updates {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
@@ -164,7 +176,7 @@ func (tgb *Telgitbot) issues(idmsg int) {
 func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
 	idx := strings.Index(repoinfo, ":")
 	if idx == -1 {
-		tgb.fsm.SetState("begin")
+		tgb.fsm.SetState(BEGIN)
 		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
 		tgb.botapi.SendMessage(msg)
 		return
@@ -172,7 +184,7 @@ func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
 
 	splitter := strings.Split(repoinfo, ":")
 	if len(splitter) != 2 {
-		tgb.fsm.SetState("begin")
+		tgb.fsm.SetState(BEGIN)
 		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
 		tgb.botapi.SendMessage(msg)
 		return
@@ -201,7 +213,7 @@ func (tgb *Telgitbot) pullRequests(idmsg int) {
 func (tgb *Telgitbot) pullRequestsEnter(idmsg int, repoinfo string) {
 	idx := strings.Index(repoinfo, ":")
 	if idx == -1 {
-		tgb.fsm.SetState("begin")
+		tgb.fsm.SetState(BEGIN)
 		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
 		tgb.botapi.SendMessage(msg)
 		return
@@ -209,7 +221,7 @@ func (tgb *Telgitbot) pullRequestsEnter(idmsg int, repoinfo string) {
 
 	splitter := strings.Split(repoinfo, ":")
 	if len(splitter) != 3 {
-		tgb.fsm.SetState("begin")
+		tgb.fsm.SetState(BEGIN)
 		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
 		tgb.botapi.SendMessage(msg)
 		return
