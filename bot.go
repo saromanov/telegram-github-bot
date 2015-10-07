@@ -1,6 +1,7 @@
 package telgitbot
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Syfaro/telegram-bot-api"
 	"github.com/google/go-github/github"
@@ -21,6 +22,7 @@ const (
 	ISSUESENTER       = "issues_enter"
 	PULLREQUESTS      = "pullrequests"
 	PULLREQUESTSENTER = "pullrequests_enter"
+	HELP              = "help"
 )
 
 type Telgitbot struct {
@@ -48,7 +50,7 @@ func New(token string) *Telgitbot {
 }
 
 func (tgb *Telgitbot) registerStates() {
-	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS},
+	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS, HELP},
 		[]string{"/auth", "/repos"})
 	tgb.fsm.AddState(AUTH, []string{BEGIN, DATAAUTH}, []string{"", " "})
 	tgb.fsm.AddState(REPOS, []string{BEGIN}, []string{""})
@@ -58,6 +60,7 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState(ISSUESENTER, []string{BEGIN}, []string{""})
 	tgb.fsm.AddState(PULLREQUESTS, []string{PULLREQUESTSENTER, BEGIN}, []string{""})
 	tgb.fsm.AddState(PULLREQUESTSENTER, []string{BEGIN}, []string{""})
+	tgb.fsm.AddState(HELP, []string{HELP}, []string{})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -88,6 +91,9 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState(PULLREQUESTSENTER)
 	case PULLREQUESTSENTER:
 		tgb.pullRequestsEnter(idmsg, text)
+		tgb.fsm.SetState(BEGIN)
+	case HELP:
+		tgb.help(idmsg)
 		tgb.fsm.SetState(BEGIN)
 	}
 }
@@ -247,6 +253,16 @@ func (tgb *Telgitbot) pullRequestsEnter(idmsg int, repoinfo string) {
 		result += fmt.Sprintf("%d. %s:%s\n", i+1, *pr.SHA, *pr.Commit.Message)
 	}
 	msg := tgbotapi.NewMessage(idmsg, result)
+	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) help(idmsg int) {
+	result := bytes.NewBufferString("")
+	result.WriteString("/auth - authorization by the token\n")
+	result.WriteString("/repos - List of repos by the user\n")
+	result.WriteString("/issues - List of issues for project\n")
+	result.WriteString("/pullrequests - List of pull requests for project\n")
+	msg := tgbotapi.NewMessage(idmsg, result.String())
 	tgb.botapi.SendMessage(msg)
 }
 
