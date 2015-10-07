@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/Syfaro/telegram-bot-api"
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 	"log"
 	"strconv"
 	"strings"
@@ -135,17 +136,17 @@ func (tgb *Telgitbot) Start() {
 }
 
 func (tgb *Telgitbot) auth(idmsg int, inp string) {
-	msg := tgbotapi.NewMessage(idmsg, "Set your username and password")
+	msg := tgbotapi.NewMessage(idmsg, "Set your access token")
 	tgb.botapi.SendMessage(msg)
 }
 
-func (tgb *Telgitbot) dataauth(idmsg int, text string) {
-	check := strings.Index(text, ":")
-	if check == -1 {
-		msg := tgbotapi.NewMessage(idmsg,
-			"username and password must be in the format Username:Passord")
-		tgb.botapi.SendMessage(msg)
-	}
+func (tgb *Telgitbot) dataauth(idmsg int, accesstoken string) {
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: "... your access token ..."},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+	tgb.client = github.NewClient(tc)
 }
 
 func (tgb *Telgitbot) repos(idmsg int, reponame string) {
