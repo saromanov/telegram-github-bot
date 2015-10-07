@@ -23,6 +23,7 @@ const (
 	PULLREQUESTS      = "pullrequests"
 	PULLREQUESTSENTER = "pullrequests_enter"
 	HELP              = "help"
+	SEARCH            = "search"
 )
 
 type Telgitbot struct {
@@ -50,7 +51,8 @@ func New(token string) *Telgitbot {
 }
 
 func (tgb *Telgitbot) registerStates() {
-	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS, HELP},
+	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS, HELP,
+		SEARCH},
 		[]string{"/auth", "/repos"})
 	tgb.fsm.AddState(AUTH, []string{BEGIN, DATAAUTH}, []string{"", " "})
 	tgb.fsm.AddState(REPOS, []string{BEGIN}, []string{""})
@@ -61,6 +63,7 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState(PULLREQUESTS, []string{PULLREQUESTSENTER, BEGIN}, []string{""})
 	tgb.fsm.AddState(PULLREQUESTSENTER, []string{BEGIN}, []string{""})
 	tgb.fsm.AddState(HELP, []string{HELP}, []string{})
+	tgb.fsm.AddState(SEARCH, []string{BEGIN}, []string{})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -94,6 +97,9 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState(BEGIN)
 	case HELP:
 		tgb.help(idmsg)
+		tgb.fsm.SetState(BEGIN)
+	case SEARCH:
+		tgb.search(idmsg, text)
 		tgb.fsm.SetState(BEGIN)
 	}
 }
@@ -262,8 +268,30 @@ func (tgb *Telgitbot) help(idmsg int) {
 	result.WriteString("/repos - List of repos by the user\n")
 	result.WriteString("/issues - List of issues for project\n")
 	result.WriteString("/pullrequests - List of pull requests for project\n")
+    result.WriteString("/search - Search repositorires by query\n")
 	msg := tgbotapi.NewMessage(idmsg, result.String())
 	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) search(idmsg int, text string) {
+	query := strings.Split(text, "/search")
+	if len(query) != 2 {
+		return
+	}
+
+	value := strings.Replace(query[1], " ", "", -1)
+	items, _, err := tgb.client.Search.Repositories(value, &github.SearchOptions{})
+	if err != nil {
+		panic(err)
+	}
+	result := ""
+	for _, item := range items.Repositories {
+		result += fmt.Sprintf("%s: %s\n", *item.HTMLURL, *item.Description)
+	}
+
+	msg := tgbotapi.NewMessage(idmsg, result)
+	tgb.botapi.SendMessage(msg)
+
 }
 
 //prepareInput provides getting "standard" data from request
