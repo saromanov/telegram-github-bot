@@ -24,6 +24,7 @@ const (
 	PULLREQUESTSENTER = "pullrequests_enter"
 	HELP              = "help"
 	SEARCH            = "search"
+	USER              = "user"
 )
 
 type Telgitbot struct {
@@ -52,7 +53,7 @@ func New(token string) *Telgitbot {
 
 func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState(BEGIN, []string{AUTH, "repos", COLLABORATORS, ISSUES, PULLREQUESTS, HELP,
-		SEARCH},
+		SEARCH, USER},
 		[]string{"/auth", "/repos"})
 	tgb.fsm.AddState(AUTH, []string{BEGIN, DATAAUTH}, []string{"", " "})
 	tgb.fsm.AddState(REPOS, []string{BEGIN}, []string{""})
@@ -64,6 +65,7 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState(PULLREQUESTSENTER, []string{BEGIN}, []string{""})
 	tgb.fsm.AddState(HELP, []string{HELP}, []string{})
 	tgb.fsm.AddState(SEARCH, []string{BEGIN}, []string{})
+	tgb.fsm.AddState(USER, []string{USER}, []string{})
 }
 
 func (tgb *Telgitbot) Process(idmsg int, state, text string) {
@@ -100,6 +102,9 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState(BEGIN)
 	case SEARCH:
 		tgb.search(idmsg, text)
+		tgb.fsm.SetState(BEGIN)
+	case USER:
+		tgb.user(idmsg, text)
 		tgb.fsm.SetState(BEGIN)
 	}
 }
@@ -268,7 +273,8 @@ func (tgb *Telgitbot) help(idmsg int) {
 	result.WriteString("/repos - List of repos by the user\n")
 	result.WriteString("/issues - List of issues for project\n")
 	result.WriteString("/pullrequests - List of pull requests for project\n")
-    result.WriteString("/search - Search repositorires by query\n")
+	result.WriteString("/search - Search repositorires by query\n")
+	result.WriteString("/user - Return basic information about user\n")
 	msg := tgbotapi.NewMessage(idmsg, result.String())
 	tgb.botapi.SendMessage(msg)
 }
@@ -292,6 +298,28 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 	msg := tgbotapi.NewMessage(idmsg, result)
 	tgb.botapi.SendMessage(msg)
 
+}
+
+//return to output of telegram list of users
+func (tgb *Telgitbot) user(idmsg int, inp string) {
+	splitter := strings.Split(inp, "/user")
+	if len(splitter) != 2 {
+		return
+	}
+	username := strings.Replace(splitter[1], " ", "", -1)
+	user, _, err := tgb.client.Users.Get(username)
+	if err != nil {
+		if strings.Index(err.Error(), "404") != 0 {
+			msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("User %s is not found", username))
+			tgb.botapi.SendMessage(msg)
+		} else {
+			msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("%v", err))
+			tgb.botapi.SendMessage(msg)
+		}
+		return
+	}
+	msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("%d", *user.PublicRepos))
+	tgb.botapi.SendMessage(msg)
 }
 
 //prepareInput provides getting "standard" data from request
