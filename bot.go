@@ -285,7 +285,9 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 		panic(err)
 	}
 	result := ""
+	popularwords := []string{}
 	for _, item := range items.Repositories {
+		popularwords = append(popularwords, strings.Split(*item.Description, ":")[1])
 		result += fmt.Sprintf("%s: %s\n", *item.HTMLURL, *item.Description)
 	}
 
@@ -308,8 +310,32 @@ func (tgb *Telgitbot) user(idmsg int, inp string) {
 		}
 		return
 	}
-	msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("%d", *user.PublicRepos))
-	tgb.botapi.SendMessage(msg)
+
+	result := bytes.NewBufferString("")
+	if user.Name != nil {
+		result.WriteString(fmt.Sprintf("Name: %s\n", *user.Name))
+	}
+
+	if user.Email != nil {
+		result.WriteString(fmt.Sprintf("Email: %s\n", *user.Email))
+	}
+
+	if user.Followers != nil {
+		result.WriteString(fmt.Sprintf("Followers: %d\n", *user.Followers))
+	}
+
+	if user.Followers != nil {
+		result.WriteString(fmt.Sprintf("Following: %d\n", *user.Followers))
+	}
+
+	if user.PublicRepos != nil {
+		result.WriteString(fmt.Sprintf("Public repos: %d\n", *user.PublicRepos))
+	}
+
+	if user.Bio != nil {
+		result.WriteString(fmt.Sprintf("Bio: %s\n", *user.Bio))
+	}
+	tgb.sendMessage(idmsg, result.String())
 }
 
 //prepareInput provides getting "standard" data from request
