@@ -24,6 +24,7 @@ const (
 	PULLREQUESTSENTER = "pullrequests_enter"
 	HELP              = "help"
 	SEARCH            = "search"
+	ADVANCEDSEARCH    = "avdancedsearch"
 	USER              = "user"
 )
 
@@ -64,7 +65,8 @@ func (tgb *Telgitbot) registerStates() {
 	tgb.fsm.AddState(PULLREQUESTS, []string{PULLREQUESTSENTER, BEGIN}, []string{""})
 	tgb.fsm.AddState(PULLREQUESTSENTER, []string{BEGIN}, []string{""})
 	tgb.fsm.AddState(HELP, []string{HELP}, []string{})
-	tgb.fsm.AddState(SEARCH, []string{BEGIN}, []string{})
+	tgb.fsm.AddState(SEARCH, []string{ADVANCEDSEARCH}, []string{})
+	tgb.fsm.AddState(ADVANCEDSEARCH, []string{SEARCH, BEGIN}, []string{})
 	tgb.fsm.AddState(USER, []string{USER}, []string{})
 }
 
@@ -102,6 +104,9 @@ func (tgb *Telgitbot) Process(idmsg int, state, text string) {
 		tgb.fsm.SetState(BEGIN)
 	case SEARCH:
 		tgb.search(idmsg, text)
+		tgb.fsm.SetState(ADVANCEDSEARCH)
+	case ADVANCEDSEARCH:
+		tgb.advancedsearch(idmsg, text)
 		tgb.fsm.SetState(BEGIN)
 	case USER:
 		tgb.user(idmsg, text)
@@ -287,10 +292,12 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 	result := ""
 	popularwords := []string{}
 	for _, item := range items.Repositories {
-		popularwords = append(popularwords, strings.Split(*item.Description, ":")[1])
+		popularwords = append(popularwords, *item.Description)
 		result += fmt.Sprintf("%s: %s\n", *item.HTMLURL, *item.Description)
 	}
 
+	result += "\n"
+	result += "Try again?\n"
 	tgb.sendMessage(idmsg, result)
 }
 
@@ -336,6 +343,10 @@ func (tgb *Telgitbot) user(idmsg int, inp string) {
 		result.WriteString(fmt.Sprintf("Bio: %s\n", *user.Bio))
 	}
 	tgb.sendMessage(idmsg, result.String())
+}
+
+func (tgb *Telgitbot) advancedsearch(idmsg int, text string) {
+
 }
 
 //prepareInput provides getting "standard" data from request
