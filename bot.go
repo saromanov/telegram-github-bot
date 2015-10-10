@@ -153,8 +153,7 @@ func (tgb *Telgitbot) Start() {
 }
 
 func (tgb *Telgitbot) auth(idmsg int, inp string) {
-	msg := tgbotapi.NewMessage(idmsg, "Set your access token")
-	tgb.botapi.SendMessage(msg)
+	tgb.sendMessage(idmsg, "Set your access token")
 }
 
 func (tgb *Telgitbot) dataauth(idmsg int, accesstoken string) {
@@ -224,32 +223,28 @@ func (tgb *Telgitbot) issues_enter(idmsg int, repoinfo string) {
 }
 
 func (tgb *Telgitbot) pullRequests(idmsg int) {
-	msg := tgbotapi.NewMessage(idmsg, "Enter owner:repo:number of PR")
-	tgb.botapi.SendMessage(msg)
+	tgb.sendMessage(idmsg, "Enter owner:repo:number of PR")
 }
 
 func (tgb *Telgitbot) pullRequestsEnter(idmsg int, repoinfo string) {
 	idx := strings.Index(repoinfo, ":")
 	if idx == -1 {
 		tgb.fsm.SetState(BEGIN)
-		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
-		tgb.botapi.SendMessage(msg)
+		tgb.sendMessage(idmsg, "incorrect format")
 		return
 	}
 
 	splitter := strings.Split(repoinfo, ":")
 	if len(splitter) != 3 {
 		tgb.fsm.SetState(BEGIN)
-		msg := tgbotapi.NewMessage(idmsg, "incorrect format")
-		tgb.botapi.SendMessage(msg)
+		tgb.sendMessage(idmsg, "incorrect format")
 		return
 	}
 	owner := splitter[0]
 	repo := splitter[1]
 	num, err := strconv.Atoi(splitter[2])
 	if err != nil {
-		msg := tgbotapi.NewMessage(idmsg, "Number of pull requests must be integer")
-		tgb.botapi.SendMessage(msg)
+		tgb.sendMessage(idmsg, "Number of pull requests must be integer")
 		return
 	}
 
@@ -275,8 +270,7 @@ func (tgb *Telgitbot) help(idmsg int) {
 	result.WriteString("/pullrequests - List of pull requests for project\n")
 	result.WriteString("/search - Search repositorires by query\n")
 	result.WriteString("/user - Return basic information about user\n")
-	msg := tgbotapi.NewMessage(idmsg, result.String())
-	tgb.botapi.SendMessage(msg)
+	tgb.sendMessage(idmsg, result.String())
 }
 
 func (tgb *Telgitbot) search(idmsg int, text string) {
@@ -295,9 +289,7 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 		result += fmt.Sprintf("%s: %s\n", *item.HTMLURL, *item.Description)
 	}
 
-	msg := tgbotapi.NewMessage(idmsg, result)
-	tgb.botapi.SendMessage(msg)
-
+	tgb.sendMessage(idmsg, result)
 }
 
 //return to output of telegram list of users
@@ -310,11 +302,9 @@ func (tgb *Telgitbot) user(idmsg int, inp string) {
 	user, _, err := tgb.client.Users.Get(username)
 	if err != nil {
 		if strings.Index(err.Error(), "404") != 0 {
-			msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("User %s is not found", username))
-			tgb.botapi.SendMessage(msg)
+			tgb.sendMessage(idmsg, fmt.Sprintf("User %s is not found", username))
 		} else {
-			msg := tgbotapi.NewMessage(idmsg, fmt.Sprintf("%v", err))
-			tgb.botapi.SendMessage(msg)
+			tgb.sendMessage(idmsg, fmt.Sprintf("%v", err))
 		}
 		return
 	}
@@ -346,6 +336,11 @@ func (tgb *Telgitbot) prepareState(inp string) string {
 	return result
 }
 
-func (tgb *Telgitbot) findByStars(title string) {
+func (tgb *Telgitbot) sendMessage(idmsg int, message string) {
+	msg := tgbotapi.NewMessage(idmsg, message)
+	tgb.botapi.SendMessage(msg)
+}
+
+func (tgb *Telgitbot) findByStars(mesg string) {
 
 }
