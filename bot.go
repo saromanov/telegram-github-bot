@@ -33,6 +33,8 @@ type Telgitbot struct {
 	client        *github.Client
 	fsm           *FSM
 	updatemessage int
+	storechannles map[string]chan bool
+	store         map[string]interface{}
 }
 
 func New(token string) *Telgitbot {
@@ -47,6 +49,8 @@ func New(token string) *Telgitbot {
 	tgb := new(Telgitbot)
 	tgb.botapi = bot
 	tgb.client = github.NewClient(nil)
+	tgb.store = map[string]interface{}{}
+	tgb.storechannles = map[string]chan bool{}
 	tgb.fsm = NewFSM()
 	tgb.registerStates()
 	return tgb
@@ -290,6 +294,7 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 		panic(err)
 	}
 	result := ""
+	result += fmt.Sprintf("Search query: %s\n", value)
 	popularwords := []string{}
 	for _, item := range items.Repositories {
 		popularwords = append(popularwords, *item.Description)
@@ -299,6 +304,13 @@ func (tgb *Telgitbot) search(idmsg int, text string) {
 	result += "\n"
 	result += "Try again?\n"
 	tgb.sendMessage(idmsg, result)
+	if len(popularwords) > 2 {
+		tgb.storechannles["newsearch"] = make(chan bool, 1)
+		go func() {
+			tgb.store["newsearch"] = GetCommonWords(popularwords, value, 1)
+			tgb.storechannles["newsearch"] <- true
+		}()
+	}
 }
 
 //return to output of telegram list of users
@@ -346,7 +358,22 @@ func (tgb *Telgitbot) user(idmsg int, inp string) {
 }
 
 func (tgb *Telgitbot) advancedsearch(idmsg int, text string) {
+	if !IsYes(text) {
+		tgb.sendMessage(idmsg, "OK. Great that you satisfied with this results!")
+		return
+	}
 
+	item, ok := tgb.storechannles["newsearch"]
+	if !ok {
+		return
+	}
+
+	switch <-item {
+	case true:
+		tgb.search(idmsg, fmt.Sprintf("/%s %s", "search", tgb.store["newsearch"]))
+		delete(tgb.store, "newsearch")
+		delete(tgb.storechannles, "newsearch")
+	}
 }
 
 //prepareInput provides getting "standard" data from request
